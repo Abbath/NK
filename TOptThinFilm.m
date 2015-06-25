@@ -54,6 +54,7 @@ classdef TOptThinFilm
         aver1
         aver2
         aver3
+        head
     end
     
     methods
@@ -84,12 +85,16 @@ classdef TOptThinFilm
             %f.Name = input('Enter file name');
             
         end
+        function [obj1] = ReadInput(obj)
+            disp('ReadInput');
+            obj1 = obj;
+        end
         function [ obj1, b ] = encode(obj)
-            obj.OverAllBestMerit = 999.9;
+            obj.OverallBestMerit = 999.9;
             count = 0
             obj.d_sav = CopyStack(obj.maxlay, obj.d_orig);
-            obj.midlam = 0.5*(lambdas(1) + lambdas(numlam));
-            for obj.lay = 1:obj.maxlay
+            obj.midlam = 0.5*(obj.lambdas(1) + obj.lambdas(obj.numlam));
+            for lay = 1:obj.maxlay
                 obj.opthix_range(obj.lay) = obj.midlam;
                 if obj.opthix_range(obj.lay) < real(obj.n(obj.lay)) * obj.d_sav(obj.lay)
                     obj.opthix_range(obj.lay) = 1.2 * real(obj.n(obj.lay)) * obj.d_sav(obj.lay);
@@ -98,8 +103,8 @@ classdef TOptThinFilm
                     obj.opthix_range(obj.lay) = real(obj.n(obj.lay)) * obj.max_film_thickness;
                 end
             end
-            ReadInput();
-            for obj.iter = 1 : obj.num_iterations
+            obj = ReadInput(obj);
+            for iter = 1 : obj.num_iterations
                 if obj.iter == 1
                     obj.numthix = obj.FirstIter;
                 elseif obj.iter == 2
@@ -109,25 +114,25 @@ classdef TOptThinFilm
                 end
                 obj.numthix_plus1 = obj.numthix + 1;
                 obj.scale_down = 1.1/obj.numthix;
-                obj.d_inc = calc_d_inc(obj, maxlay, numthix, opthix_range, n);
+                obj.d_inc = calc_d_inc(obj, obj.maxlay, obj.numthix, obj.opthix_range, obj.n);
                 obj.layer_to_vary = obj.layer_to_start;
-                for obj.lay_col = 1:maxlay
+                for lay_col = 1:obj.maxlay
                     obj.BestMerit = 999.9;
                     if iter == 1
-                        obj.d_sav = CopyStack(maxlay, d_orig);
+                        obj.d_sav = CopyStack(obj.maxlay, obj.d_orig);
                     else
-                        for obj.lay = 1:obj.maxlay
+                        for lay = 1:obj.maxlay
                             obj.d_sav(obj.lay) = obj.d_orig(obj.lay);
                         end
                     end
-                    for i = 1:(length(head)-1)
+                    for i = 1:(length(obj.head)-1)
                         obj.head(i) = Initialize(obj.layer_to_vary, d_sav);
                     end
-                    for obj.lay_row = 1:maxlay
+                    for lay_row = 1:obj.maxlay
                         obj.r_u_updated = 0;
                         if obj.iteration(obj.layer_to_vary) <= obj.iter
                             obj.dx = calc_dstart(obj, obj.d_sav(obj.layer_to_vary), obj.d_inc(obj.layer_to_vary), obj.numthix, obj.max_film_thickness);
-                            for obj.thick_count = 1:obj.numthix_plus1
+                            for thick_count = 1:obj.numthix_plus1
                                 obj.Merit = 0.0;
                                 obj.Merit = TotalMerit(obj.dx, obj.layer_to_vary);
                                 if obj.Merit < obj.BestMerit
@@ -148,7 +153,7 @@ classdef TOptThinFilm
                         end
                         if obj.BestMerit < obj.OverallBestMerit
                             obj.OverallBestMerit = obj.BestMerit;
-                            for obj.lay = 1:obj.maxlay
+                            for lay = 1:obj.maxlay
                                 obj.d_best(obj.lay) = obj.d_sav(obj.lay);
                             end
                             for i = 1:(length(obj.head) - 1)
@@ -166,11 +171,11 @@ classdef TOptThinFilm
                     obj.layer_to_vary = mod(obj.layer_to_vary, obj.maxlay) + 1;
                 end
                 disp(obj.OverallBestMerit);
-                for obj.lay = 1:obj.maxlay
+                for lay = 1:obj.maxlay
                     obj.opthix_range(obj.lay) = obj.opthix_range(obj.lay) * obj.scale_down;
                 end
             end
-            for obj.lay = 1:obj.maxlay
+            for lay = 1:obj.maxlay
                 obj.d_sav(obj.lay) = obj.d_best(obj.lay);
             end
             for i = 1:(length(obj.head) - 1)
@@ -178,7 +183,7 @@ classdef TOptThinFilm
                     obj.head(i).r(j) = obj.head(i).r_overallbest(j);
                 end
             end
-            if obj.OverallBesterit <= obj.AcceptableResult
+            if obj.OverallBestMerit <= obj.AcceptableResult
                 b = 1;
             else
                 b = 0;
@@ -189,7 +194,7 @@ classdef TOptThinFilm
             t = 1;
         end
         function [d_inc] = calc_d_inc(obj, maxlay, numthix, opthix_range, ndx)
-            for obj.lay = 1:maxlay
+            for lay = 1:maxlay
                 d_inc(obj.lay) = opthix_range(obj.lay)/(real(ndx(lay))*numthix);
             end
         end
@@ -224,17 +229,28 @@ classdef TOptThinFilm
             alfa = zeros(1,LayerSize());
             [f, alfa] = LayerParameters(obj.maxlay, n)
             r_u = setup_subs(obj, obj.numlam, obj.n)
-            for obj.wav = 1: obj.numlam
+            for wav = 1: obj.numlam
                 obj.lambda = obj.lambdas(wav);
                 theta = zeros(1,LayerSize());
-                for obj.lay = 1:obj.maxlay
-                    theta(obj.lay) = ((4*pi)*real(n(obj.lay))*obj.d_sav(obj.lay)/lambda;
+                for lay = 1:obj.maxlay
+                    theta(obj.lay) = (4*pi)*real(n(obj.lay))*obj.d_sav(obj.lay)/obj.lambda;
                 end
                 Zstak(1,obj.r_u(wav), obj.t_u(wav), alfa, f, theta, obj.maxlay, real(n(1)), 1);
             end
-            for obj.wav = 1:obj.numlam
+            for wav = 1:obj.numlam
                 r_u_test(wav) = obj.r_u(wav);
             end
+        end
+        function [b] = is_empty(obj)
+            b = isempty(obj.head);
+        end
+        function [obj1] = append(obj, item)
+            obj1 = obj;
+            obj1.head = [obj1.head, item];
+        end
+        function [obj1] = remove(obj)
+            obj1 = obj;
+            obj1.head = [];
         end
     end
 end
