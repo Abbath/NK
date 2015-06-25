@@ -119,7 +119,7 @@ classdef TOptThinFilm
             counter = 0;
             obj.Pat = zeros(1, 30);
             while 1
-                if feof(file) || (count == 16)
+                if counter >= length(data) || (count == 16)
                     break;
                 end
                 count = count + 1;
@@ -172,8 +172,8 @@ classdef TOptThinFilm
                             obj.d_sav(lay) = obj.d_orig(lay);
                         end
                     end
-                    for i = 1:(length(obj.head)-1)
-                        obj.head(i) = Initialize(obj.layer_to_vary, obj.d_sav);
+                    for i = 1:(length(obj.head)-1) 
+                        obj.head(i) = Initialize(obj.head(i), obj.layer_to_vary, obj.d_sav);
                     end
                     for lay_row = 1:obj.maxlay
                         obj.r_u_updated = 0;

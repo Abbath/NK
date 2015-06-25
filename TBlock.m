@@ -21,7 +21,8 @@ classdef TBlock
     
     methods
         function [f] = TBlock(NumLam, NumLay, Lambdas, N, D_sav, In, Out)
-            f.MLayers(1,LayerSize()+2) = TSingleLayer;
+            f.MLayers = TSingleLayer.empty(0,0);
+            f.MLayers(1,LayerSize()+2) = TSingleLayer(0,0,NumLam, Lambdas);
             f.n = zeros(1, LayerSize());
             f.alfa = zeros(1, LayerSize());
             f.d_sav = zeros(1, LayerSize());

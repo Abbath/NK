@@ -42,9 +42,23 @@ classdef Item
             end
             Out = 4;
             In = 1;
-            f.SubStrate = TBlock(f.numlam, f.maxlay, f.lambdas, f.d_sav, In , Out);
-            f.Supers = TBlock(f.numlam, f.maxlay, f.lambdas, f.d_sav, In , In);
+            f.SubStrate = TBlock(f.numlam, f.maxlay, f.lambdas, f.n, f.d_sav, In , Out);
+            f.Supers = TBlock(f.numlam, f.maxlay, f.lambdas, f.n, f.d_sav, In , In);
             %f.next = item;
+        end
+        function [obj1] = Initialize(obj,layer_to_start, d_sav)
+            obj.SubStrate = update(obj.SubStrate, d_sav);
+            obj.Supers = update(obj.Supers, d_sav);
+            obj.SubStrate = setup_subs(obj.SubStrate);
+            obj.Supers = setup_subs(obj.Supers);
+            obj.Supers = setup_supers(obj.Supers);
+            layer = 1;
+            while layer < layer_to_start
+                obj.SubStrate = Add_one(obj.SubStrate, layer);
+                obj.Supers = BackOff_one(obj.Supers, layer + 1);
+                layer = layer + 1;
+            end
+            obj1 = obj;
         end
         function [obj1] = Adjust(obj, lay_row, layer_to_vary, r_u_updated, d_sav)
             next_layer_to_vary = 0;
