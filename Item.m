@@ -42,16 +42,15 @@ classdef Item
             end
             Out = 4;
             In = 1;
-            f.SubStrate = TBlock(f.numlam, f,maxlay, f.lambdas, f.d_sav, In , Out);
-            f.Supers = TBlock(f.numlam, f,maxlay, f.lambdas, f.d_sav, In , In);
+            f.SubStrate = TBlock(f.numlam, f.maxlay, f.lambdas, f.d_sav, In , Out);
+            f.Supers = TBlock(f.numlam, f.maxlay, f.lambdas, f.d_sav, In , In);
             %f.next = item;
         end
         function [obj1] = Adjust(obj, lay_row, layer_to_vary, r_u_updated, d_sav)
-            wav = 0;
             next_layer_to_vary = 0;
-            obj.SubStrate = update(pbj.SubStrate, obj.d_sav);
-            obj.Supers = update(pbj.Supers, obj.d_sav);
-            if next_layer_to_vary != 1
+            obj.SubStrate = update(pbj.SubStrate, d_sav);
+            obj.Supers = update(pbj.Supers, d_sav);
+            if next_layer_to_vary ~= 1
                 if r_u_updated
                     for wav = 1: obj.numlam
                         obj.SubStrate.r_o(wav) = obj.next_r_u(wav);
@@ -79,9 +78,7 @@ classdef Item
             obj1 = obj;
         end
         function [ obj1, temp1 ] = Ref_calc(obj, r_comb, r_u, rx, tx, r_o, t_o, r_o_back, t_o_back)
-            temp2 = 0;
-            num = 0;
-            den = 0;
+
             temp1 = rx * rx;
             temp2 = tx * tx;
             temp1 = temp2 - temp1;
@@ -91,15 +88,15 @@ classdef Item
             temp1 = rx * r_u;
             den = complex(1 - real(temp1), - imag(temp1));
             
-            obj.r_comb = num / div;
+            obj.r_comb = num / den;
             
             temp1 = r_o * r_o_back;
             temp2 = t_o * t_o_back;
             temp1 = temp2 - temp1;
-            num = temp1 * obj.r_comb;
+            num = temp1 * r_comb;
             num = r_o + num;
             
-            temp1 = r_o_back * obj.r_comb;
+            temp1 = r_o_back * r_comb;
             den = complex(1 - real(temp1), - imag(temp1));
             
             temp1 = num / den;
@@ -107,13 +104,13 @@ classdef Item
         end
         function [obj1, Merit] = GetMerit(obj, dx, layer_to_vary)
             ALayer = TSingleLayer(obj.n(layer_to_vary), dx, obj.numlam, obj.lambdas);
-            lambda = 0;
             Merit = 0;
             for wav = 1:obj.numlam
-                lambda = obj.lambdas(wav);
-                [o, obj.r(wav)] = Ref_calc(obj, obj.r_comb(wav), obj.SubStrate.r_o(wav), ALayer.rx(wav), ALayer.tx(wav), obj.Supers.r_o(wav), obj.Supers.t_o(wav), obj.Supers.r_o_back(wav), obj.Supers.t_o_back(wav));
+                %lambda = obj.lambdas(wav);
+                [~, obj.r(wav)] = Ref_calc(obj, obj.r_comb(wav), obj.SubStrate.r_o(wav), ALayer.rx(wav), ALayer.tx(wav), obj.Supers.r_o(wav), obj.Supers.t_o(wav), obj.Supers.r_o_back(wav), obj.Supers.t_o_back(wav));
                 Merit = Merit + (obj.Rtarget - abs(obj.r(wav)).^2).^2;
             end
+            obj1 = obj;
         end
     end
 end

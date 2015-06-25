@@ -7,15 +7,15 @@ classdef TOptThinFilm
         SaveStack
         r_u_updated
         max_film_thickness
-        i
+        %i
         %iter
         %lay
         next_layer_to_vary
         layer_to_vary
         layer_to_start
-        lay_row
-        lay_col
-        thick_count
+        %lay_row
+        %lay_col
+        %thick_count
         %wav
         numlam
         maxlay
@@ -85,9 +85,9 @@ classdef TOptThinFilm
             f.Name = input('Enter file name');
             file = fopen(strcat(f.Name,'.stk'), 'r');
             f.maxlay = fscanf(file, '%d');
-            Nin = fscanf(file, '%f');
-            Nout = fscanf(file, '%f');
-            for lay = 1:maxlay
+            fscanf(file, '%f');
+            fscanf(file, '%f');
+            for lay = 1:f.maxlay
                 Re = fscanf(file, '%f');
                 Im = fscanf(file, '%f');
                 f.n(lay) = complex(Re, Im);
@@ -97,7 +97,7 @@ classdef TOptThinFilm
             f.NumberOfInput = fscanf(file, '%d');
             f.delta = fscanf(file, '%f');
             f.minlam = fscanf(file, '%f');
-            LamFac = 0;
+            %LamFac = 0;
             if f.numlam == 1
                 LamFac = 0;
             else
@@ -112,9 +112,9 @@ classdef TOptThinFilm
         end
         function [obj1] = ReadInput(obj)
             file = fopen(strcat(f.Name, '.fct'), 'r');
-            Rtarget = 0;
+            %Rtarget = 0;
             count = 0;
-            Pat = zeros(1, 30);
+            obj.Pat = zeros(1, 30);
             while 1
                 if feof(file) || ferror(file) || count == 16
                     break;
@@ -123,7 +123,7 @@ classdef TOptThinFilm
                 for j = 1:obj.NumberOfInput
                     obj.Pat(j) = fscanf(file, '%f');
                 end
-                keyword = fscanf(file, '%s');
+                fscanf(file, '%s');
                 Rtarget = fscanf(file, '%f');
                 for j = 1:obj.maxlay
                     obj.n(j) = complex(real(obj.n_opt(j)) + obj.delta * obj.Pat(j),imag(obj.n(j)));
@@ -136,7 +136,6 @@ classdef TOptThinFilm
         end
         function [ obj1, b ] = encode(obj)
             obj.OverallBestMerit = 999.9;
-            count = 0
             obj.d_sav = CopyStack(obj.maxlay, obj.d_orig);
             obj.midlam = 0.5*(obj.lambdas(1) + obj.lambdas(obj.numlam));
             for lay = 1:obj.maxlay
@@ -171,7 +170,7 @@ classdef TOptThinFilm
                         end
                     end
                     for i = 1:(length(obj.head)-1)
-                        obj.head(i) = Initialize(obj.layer_to_vary, d_sav);
+                        obj.head(i) = Initialize(obj.layer_to_vary, obj.d_sav);
                     end
                     for lay_row = 1:obj.maxlay
                         obj.r_u_updated = 0;
@@ -183,9 +182,9 @@ classdef TOptThinFilm
                                 if obj.Merit < obj.BestMerit
                                     obj.r_u_updated = 1;
                                     obj.BestMerit = obj.Merit;
-                                    obj.d_sav(layer_to_vary) = obj.dx;
-                                    for i = 1:(length(head) - 1)
-                                        for j = 1:numlam
+                                    obj.d_sav(obj.layer_to_vary) = obj.dx;
+                                    for i = 1:(length(obj.head) - 1)
+                                        for j = 1:obj.numlam
                                             tmp = obj.head(i);
                                             tmp.next_r_u(j) = tmp.r_combo(j);
                                             tmp.r_best(j) = tmp.r(j);
@@ -199,7 +198,7 @@ classdef TOptThinFilm
                         if obj.BestMerit < obj.OverallBestMerit
                             obj.OverallBestMerit = obj.BestMerit;
                             for lay = 1:obj.maxlay
-                                obj.d_best(obj.lay) = obj.d_sav(obj.lay);
+                                obj.d_best(lay) = obj.d_sav(lay);
                             end
                             for i = 1:(length(obj.head) - 1)
                                 for j = 1:obj.numlam
@@ -209,7 +208,7 @@ classdef TOptThinFilm
                             
                         end
                         for i = 1:(length(obj.head) - 1)
-                            obj.head(i) = Adjust(obj.lay_row, obj.layer_to_vary, obj.r_u_updated, obj.d_sav);
+                            obj.head(i) = Adjust(lay_row, obj.layer_to_vary, obj.r_u_updated, obj.d_sav);
                         end
                         obj.layer_to_vary = mod(obj.layer_to_vary, obj.maxlay) + 1;
                     end
@@ -235,16 +234,17 @@ classdef TOptThinFilm
             end
             obj1 = obj;
         end
-        function t = training(obj)
+        function [t, obj] = training(obj)
             t = 1;
         end
-        function [d_inc] = calc_d_inc(obj, maxlay, numthix, opthix_range, ndx)
+        function [d_inc] = calc_d_inc(~, maxlay, numthix, opthix_range, ndx)
+            d_inc = zeros(1,maxlay);
             for lay = 1:maxlay
                 d_inc(lay) = opthix_range(lay)/(real(ndx(lay))*numthix);
             end
         end
-        function [ result ] = calc_dstart(obj, d_saved, d_inc, numthix, max_film_thick)
-            thick_count = 0;
+        function [ result ] = calc_dstart(~, d_saved, d_inc, numthix, max_film_thick)
+            %thick_count = 0;
             result = d_saved + d_inc * fix(numthix / 2);
             while result > max_film_thick
                 result = result - d_inc;
@@ -254,11 +254,9 @@ classdef TOptThinFilm
                 result = result + d_inc;
             end
         end
-        function [r_u, t_u] = setup_subs(obj, NumLam, ndx)
-            wav = 0;
-            f = 0;
-            denom = 0;
-            two = 0;
+        function [r_u, t_u] = setup_subs(~, NumLam, ndx)
+            r_u = zeros(1,NumLam);
+            t_u = zeros(1,NumLam);
             f = Fresnel(ndx(1));
             denom = complex(real(ndx(1)) + 1, imag(ndx(1)));
             two = 2;
@@ -268,20 +266,21 @@ classdef TOptThinFilm
             end
         end
         function [r_u_test] = recall(obj,n)
-            r_u = zeros(1,LayerSize());
-            t_u = zeros(1,LayerSize());
-            f = zeros(1,LayerSize());
-            alfa = zeros(1,LayerSize());
-            [f, alfa] = LayerParameters(obj.maxlay, n)
-            r_u = setup_subs(obj, obj.numlam, obj.n)
+            %r_u = zeros(1,LayerSize());
+            %t_u = zeros(1,LayerSize());
+            %f = zeros(1,LayerSize());
+            %alfa = zeros(1,LayerSize());
+            [f, alfa] = LayerParameters(obj.maxlay, n);
+            [r_u, t_u] = setup_subs(obj, obj.numlam, obj.n);
             for wav = 1: obj.numlam
                 obj.lambda = obj.lambdas(wav);
                 theta = zeros(1,LayerSize());
                 for lay = 1:obj.maxlay
                     theta(obj.lay) = (4*pi)*real(n(obj.lay))*obj.d_sav(obj.lay)/obj.lambda;
                 end
-                Zstak(1,obj.r_u(wav), obj.t_u(wav), alfa, f, theta, obj.maxlay, real(n(1)), 1);
+                Zstak(1, r_u(wav), t_u(wav), alfa, f, theta, obj.maxlay, real(n(1)), 1);
             end
+            r_u_test = zeros(1,obj.numlam);
             for wav = 1:obj.numlam
                 r_u_test(wav) = obj.r_u(wav);
             end
