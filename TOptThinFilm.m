@@ -126,7 +126,7 @@ classdef TOptThinFilm
                 keyword = fscanf(file, '%s');
                 Rtarget = fscanf(file, '%f');
                 for j = 1:obj.maxlay
-                    obj.n(j) = complex(real(obj.n_opt(j)) + obj.delta * obj.Pat(j),imag(obj.n(j))); 
+                    obj.n(j) = complex(real(obj.n_opt(j)) + obj.delta * obj.Pat(j),imag(obj.n(j)));
                 end
                 pt = Item(obj.numlam, obj.maxlay, obj.lambdas, obj.n, obj.d_sav, Rtarget);
                 obj = append(obj, pt);
@@ -304,6 +304,36 @@ classdef TOptThinFilm
                 TMerit = TMerit + GetMerit(obj.head(i), dx, layer_to_vary);
             end
             Merit = TMerit / count;
+        end
+        function [] = savethick(obj)
+            file = fopen(strcat(obj.Name, '.THK'), 'w');
+            fprintf(file, '%s\n%d %f %f\n', obj.Name, obj.maxlay, obj.n_opt(obj.maxlay), obj.n_opt(1));
+            for lay = 1:obj.maxlay
+                fprintf(file, '%f %f %f\n', real(obj.n_opt(lay)), imag(obj.n_opt(lay)), obj.d_sav(lay));
+            end
+            fclose(file);
+        end
+        function [] = result(obj)
+            file = fopen(strcat(obj.Name, '.RST'), 'w');
+            d = clock;
+            fprintf(file, '%s\n', f.Name);
+            fprintf(file, 'File date: %d.%d.%d\n', d(1), d(2), d(3));
+            fprintf(file, 'File time: %d:%d:%d\n', d(4), d(5), fix(d(6)));
+            fprintf(file, 'OverallBestMerit: %f\nFirstIter: %d\nDelta value: %f\nlambdas: ', obj.OverallBestMerit, obj.FirstIter, obj.delta);
+            for wav = 1:obj.numlam
+                fprintf(file, '%f:', obj.lambdas(wav));
+            end
+            fprintf(file, '\n');
+            count = 0;
+            for i = 1:length(obj.head)
+                count = count + 1;
+                fprintf(file, '%f:', obj.head(i).Rtarget);
+                for wav = 1:obj.numlam
+                    fprintf(file, '{%f}', (obj.head(i).r(wav))^2);
+                end
+                fprintf(file, '\n');
+            end
+            fclose(file);
         end
     end
 end
