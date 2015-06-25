@@ -99,11 +99,11 @@ classdef TBlock
                 end
                 [f, alpha ] = LayerParameters(obj.NumItem, Ndx);
                 if direction
-                    [z1, t1] = Zstak(bottom_level, obj.r_o(wav), obj.r_o(wav), alpha, f, theta, obj.NumItem, pseud_nin, 1);
+                    [z1, t1] = Zstak(bottom_level, obj.r_o(wav), obj.t_o(wav), alpha, f, theta, obj.NumItem, pseud_nin, 1);
                     obj1.r_o(wav) = z1;
                     obj1.t_o(wav) = t1;
                 else
-                    [z1, t1] = Zstak(bottom_level, obj.r_o_back(wav), obj.r_o_back(wav), alpha, f, theta, obj.NumItem, pseud_nin, 1);
+                    [z1, t1] = Zstak(bottom_level, obj.r_o_back(wav), obj.t_o_back(wav), alpha, f, theta, obj.NumItem, pseud_nin, 1);
                     obj1.r_o(wav) = z1;
                     obj1.t_o(wav) = t1;
                 end
@@ -138,7 +138,7 @@ classdef TBlock
                 obj1.t_o(wav) = t1;
             end
         end
-        function [obj1] = Back_Off_one(obj, layer)
+        function [obj1] = BackOff_one(obj, layer)
             Nin = 1.0;
             Ndx = zeros(1,3);
             theta = zeros(1,3);
