@@ -8,15 +8,15 @@ classdef TOptThinFilm
         r_u_updated
         max_film_thickness
         i
-        iter
-        lay
+        %iter
+        %lay
         next_layer_to_vary
         layer_to_vary
         layer_to_start
         lay_row
         lay_col
         thick_count
-        wav
+        %wav
         numlam
         maxlay
         num_iterations
@@ -82,10 +82,55 @@ classdef TOptThinFilm
             f.n = zeros(1,LayerSize());
             f.lambdas = zeros(1,LayerSize());
             f.n_opt = zeros(1,LayerSize());
-            %f.Name = input('Enter file name');
-            
+            f.Name = input('Enter file name');
+            file = fopen(strcat(f.Name,'.stk'), 'r');
+            f.maxlay = fscanf(file, '%d');
+            Nin = fscanf(file, '%f');
+            Nout = fscanf(file, '%f');
+            for lay = 1:maxlay
+                Re = fscanf(file, '%f');
+                Im = fscanf(file, '%f');
+                f.n(lay) = complex(Re, Im);
+                f.d_orig(lay) = fscanf(file, '%f');
+                f.n_opt(lay) = f.n(lay);
+            end
+            f.NumberOfInput = fscanf(file, '%d');
+            f.delta = fscanf(file, '%f');
+            f.minlam = fscanf(file, '%f');
+            LamFac = 0;
+            if f.numlam == 1
+                LamFac = 0;
+            else
+                LamFac = (f.maxlam - f.minlam) / (f.numlam - 1);
+            end
+            for wav = 1:obj.numlam
+                f.lambdas(wav) = f.minlam + LamFac * (wav - 1);
+            end
+            for lay = 1:f.maxlay
+                f.iteration(lay) = 1;
+            end
         end
         function [obj1] = ReadInput(obj)
+            file = fopen(strcat(f.Name, '.fct'), 'r');
+            Rtarget = 0;
+            count = 0;
+            Pat = zeros(1, 30);
+            while 1
+                if feof(file) || ferror(file) || count == 16
+                    break;
+                end
+                count = count + 1;
+                for j = 1:obj.NumberOfInput
+                    obj.Pat(j) = fscanf(file, '%f');
+                end
+                keyword = fscanf(file, '%s');
+                Rtarget = fscanf(file, '%f');
+                for j = 1:obj.maxlay
+                    obj.n(j) = complex(real(obj.n_opt(j)) + obj.delta * obj.Pat(j),imag(obj.n(j))); 
+                end
+                pt = Item(obj.numlam, obj.maxlay, obj.lambdas, obj.n, obj.d_sav, Rtarget);
+                obj = append(obj, pt);
+            end
             disp('ReadInput');
             obj1 = obj;
         end
@@ -95,19 +140,19 @@ classdef TOptThinFilm
             obj.d_sav = CopyStack(obj.maxlay, obj.d_orig);
             obj.midlam = 0.5*(obj.lambdas(1) + obj.lambdas(obj.numlam));
             for lay = 1:obj.maxlay
-                obj.opthix_range(obj.lay) = obj.midlam;
-                if obj.opthix_range(obj.lay) < real(obj.n(obj.lay)) * obj.d_sav(obj.lay)
-                    obj.opthix_range(obj.lay) = 1.2 * real(obj.n(obj.lay)) * obj.d_sav(obj.lay);
+                obj.opthix_range(lay) = obj.midlam;
+                if obj.opthix_range(lay) < real(obj.n(lay)) * obj.d_sav(lay)
+                    obj.opthix_range(lay) = 1.2 * real(obj.n(lay)) * obj.d_sav(lay);
                 end
-                if obj.opthix_range(obj.lay) > real(obj.n(obj.lay)) * obj.max_film_thickness;
-                    obj.opthix_range(obj.lay) = real(obj.n(obj.lay)) * obj.max_film_thickness;
+                if obj.opthix_range(lay) > real(obj.n(lay)) * obj.max_film_thickness;
+                    obj.opthix_range(lay) = real(obj.n(lay)) * obj.max_film_thickness;
                 end
             end
             obj = ReadInput(obj);
             for iter = 1 : obj.num_iterations
-                if obj.iter == 1
+                if iter == 1
                     obj.numthix = obj.FirstIter;
-                elseif obj.iter == 2
+                elseif iter == 2
                     obj.numthix = obj.SecondIter;
                 else
                     obj.numthix = obj.ThirdIter;
@@ -122,7 +167,7 @@ classdef TOptThinFilm
                         obj.d_sav = CopyStack(obj.maxlay, obj.d_orig);
                     else
                         for lay = 1:obj.maxlay
-                            obj.d_sav(obj.lay) = obj.d_orig(obj.lay);
+                            obj.d_sav(lay) = obj.d_orig(lay);
                         end
                     end
                     for i = 1:(length(obj.head)-1)
@@ -130,11 +175,11 @@ classdef TOptThinFilm
                     end
                     for lay_row = 1:obj.maxlay
                         obj.r_u_updated = 0;
-                        if obj.iteration(obj.layer_to_vary) <= obj.iter
+                        if obj.iteration(obj.layer_to_vary) <= iter
                             obj.dx = calc_dstart(obj, obj.d_sav(obj.layer_to_vary), obj.d_inc(obj.layer_to_vary), obj.numthix, obj.max_film_thickness);
                             for thick_count = 1:obj.numthix_plus1
                                 obj.Merit = 0.0;
-                                obj.Merit = TotalMerit(obj.dx, obj.layer_to_vary);
+                                obj.Merit = TotalMerit(obj, obj.dx, obj.layer_to_vary);
                                 if obj.Merit < obj.BestMerit
                                     obj.r_u_updated = 1;
                                     obj.BestMerit = obj.Merit;
@@ -172,11 +217,11 @@ classdef TOptThinFilm
                 end
                 disp(obj.OverallBestMerit);
                 for lay = 1:obj.maxlay
-                    obj.opthix_range(obj.lay) = obj.opthix_range(obj.lay) * obj.scale_down;
+                    obj.opthix_range(lay) = obj.opthix_range(lay) * obj.scale_down;
                 end
             end
             for lay = 1:obj.maxlay
-                obj.d_sav(obj.lay) = obj.d_best(obj.lay);
+                obj.d_sav(lay) = obj.d_best(lay);
             end
             for i = 1:(length(obj.head) - 1)
                 for j = 1:obj.numlam
@@ -195,12 +240,12 @@ classdef TOptThinFilm
         end
         function [d_inc] = calc_d_inc(obj, maxlay, numthix, opthix_range, ndx)
             for lay = 1:maxlay
-                d_inc(obj.lay) = opthix_range(obj.lay)/(real(ndx(lay))*numthix);
+                d_inc(lay) = opthix_range(lay)/(real(ndx(lay))*numthix);
             end
         end
         function [ result ] = calc_dstart(obj, d_saved, d_inc, numthix, max_film_thick)
             thick_count = 0;
-            result = d_saved + d_inc * fix(numthix, 2);
+            result = d_saved + d_inc * fix(numthix / 2);
             while result > max_film_thick
                 result = result - d_inc;
             end
@@ -251,6 +296,14 @@ classdef TOptThinFilm
         function [obj1] = remove(obj)
             obj1 = obj;
             obj1.head = [];
+        end
+        function [Merit] = TotalMerit(obj, dx, layer_to_vary)
+            count = 0;
+            TMerit = 0;
+            for i = 1:length(obj.head)
+                TMerit = TMerit + GetMerit(obj.head(i), dx, layer_to_vary);
+            end
+            Merit = TMerit / count;
         end
     end
 end

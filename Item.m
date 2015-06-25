@@ -20,7 +20,7 @@ classdef Item
     end
     
     methods
-        function [f] = Item(NumLam, MaxLay, Lambdas, N, D_sav, RTarget, item)
+        function [f] = Item(NumLam, MaxLay, Lambdas, N, D_sav, RTarget)
             f.numlam = NumLam;
             f.maxlay = MaxLay;
             
@@ -44,7 +44,7 @@ classdef Item
             In = 1;
             f.SubStrate = TBlock(f.numlam, f,maxlay, f.lambdas, f.d_sav, In , Out);
             f.Supers = TBlock(f.numlam, f,maxlay, f.lambdas, f.d_sav, In , In);
-            f.next = item;
+            %f.next = item;
         end
         function [obj1] = Adjust(obj, lay_row, layer_to_vary, r_u_updated, d_sav)
             wav = 0;
@@ -111,7 +111,7 @@ classdef Item
             Merit = 0;
             for wav = 1:obj.numlam
                 lambda = obj.lambdas(wav);
-                obj.r(wav) = Ref_calc(obj, obj.r_comb(wav), obj.SubStrate.r_o(wav), ALayer.rx(wav), ALayer.tx(wav), obj.Supers.r_o(wav), obj.Supers.t_o(wav), obj.Supers.r_o_back(wav), obj.Supers.t_o_back(wav));
+                [o, obj.r(wav)] = Ref_calc(obj, obj.r_comb(wav), obj.SubStrate.r_o(wav), ALayer.rx(wav), ALayer.tx(wav), obj.Supers.r_o(wav), obj.Supers.t_o(wav), obj.Supers.r_o_back(wav), obj.Supers.t_o_back(wav));
                 Merit = Merit + (obj.Rtarget - abs(obj.r(wav)).^2).^2;
             end
         end
