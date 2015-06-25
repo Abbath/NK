@@ -82,28 +82,29 @@ classdef TOptThinFilm
             f.n = zeros(1,LayerSize());
             f.lambdas = zeros(1,LayerSize());
             f.n_opt = zeros(1,LayerSize());
-            f.Name = input('Enter file name');
+            f.Name = 'sample'; %input('Enter file name: ', 's');
             file = fopen(strcat(f.Name,'.stk'), 'r');
-            f.maxlay = fscanf(file, '%d');
-            fscanf(file, '%f');
-            fscanf(file, '%f');
+            data = fscanf(file, '%f');
+            f.maxlay = data(1);
+            counter = 3;
             for lay = 1:f.maxlay
-                Re = fscanf(file, '%f');
-                Im = fscanf(file, '%f');
+                Re = data(4+((lay-1)*3));
+                Im = data(5++((lay-1)*3));
                 f.n(lay) = complex(Re, Im);
-                f.d_orig(lay) = fscanf(file, '%f');
+                f.d_orig(lay) = data(6+((lay-1)*3));
                 f.n_opt(lay) = f.n(lay);
+                counter = counter + 3;
             end
-            f.NumberOfInput = fscanf(file, '%d');
-            f.delta = fscanf(file, '%f');
-            f.minlam = fscanf(file, '%f');
+            f.NumberOfInput = data(counter+1);
+            f.delta = data(counter+2);
+            f.minlam = data(counter+3);
             %LamFac = 0;
             if f.numlam == 1
                 LamFac = 0;
             else
                 LamFac = (f.maxlam - f.minlam) / (f.numlam - 1);
             end
-            for wav = 1:obj.numlam
+            for wav = 1:f.numlam
                 f.lambdas(wav) = f.minlam + LamFac * (wav - 1);
             end
             for lay = 1:f.maxlay
@@ -111,27 +112,29 @@ classdef TOptThinFilm
             end
         end
         function [obj1] = ReadInput(obj)
-            file = fopen(strcat(f.Name, '.fct'), 'r');
+            file = fopen(strcat(obj.Name, '.fct'), 'r');
+            data = fscanf(file, '%f');
             %Rtarget = 0;
             count = 0;
+            counter = 0;
             obj.Pat = zeros(1, 30);
             while 1
-                if feof(file) || ferror(file) || count == 16
+                if feof(file) || (count == 16)
                     break;
                 end
                 count = count + 1;
+                counter = counter + 1;
                 for j = 1:obj.NumberOfInput
-                    obj.Pat(j) = fscanf(file, '%f');
+                    obj.Pat(j) = data(counter);
+                    counter = counter + 1;
                 end
-                fscanf(file, '%s');
-                Rtarget = fscanf(file, '%f');
+                Rtarget = data(counter);
                 for j = 1:obj.maxlay
                     obj.n(j) = complex(real(obj.n_opt(j)) + obj.delta * obj.Pat(j),imag(obj.n(j)));
                 end
                 pt = Item(obj.numlam, obj.maxlay, obj.lambdas, obj.n, obj.d_sav, Rtarget);
                 obj = append(obj, pt);
             end
-            disp('ReadInput');
             obj1 = obj;
         end
         function [ obj1, b ] = encode(obj)
@@ -315,7 +318,7 @@ classdef TOptThinFilm
         function [] = result(obj)
             file = fopen(strcat(obj.Name, '.RST'), 'w');
             d = clock;
-            fprintf(file, '%s\n', f.Name);
+            fprintf(file, '%s\n', obj.Name);
             fprintf(file, 'File date: %d.%d.%d\n', d(1), d(2), d(3));
             fprintf(file, 'File time: %d:%d:%d\n', d(4), d(5), fix(d(6)));
             fprintf(file, 'OverallBestMerit: %f\nFirstIter: %d\nDelta value: %f\nlambdas: ', obj.OverallBestMerit, obj.FirstIter, obj.delta);
